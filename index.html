@@ -19,6 +19,7 @@
       --shadow-soft: 0 18px 60px rgba(0, 0, 0, 0.6);
       --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text",
         "Segoe UI", sans-serif;
+      --error: #f97373;
     }
 
     *,
@@ -87,7 +88,7 @@
       color: var(--text-muted);
     }
 
-    /* Main pill box */
+    /* Card containers */
     .search-area,
     .status {
       background: linear-gradient(145deg, #0c1020, #090b12);
@@ -101,7 +102,7 @@
       margin-bottom: 18px;
     }
 
-    /* Input */
+    /* Inputs */
     #mainForm input {
       width: 100%;
       padding: 12px 14px;
@@ -119,6 +120,32 @@
     }
 
     #mainForm input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 1px var(--accent-soft);
+      background: rgba(3,5,12,0.98);
+    }
+
+    .field-label {
+      display: block;
+      margin-top: 16px;
+      margin-bottom: 4px;
+      font-size: 0.88rem;
+      color: var(--text-muted);
+    }
+
+    #customCode {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 999px;
+      border: 1px solid var(--border-subtle);
+      background: rgba(2,3,6,0.95);
+      color: var(--text-main);
+      font-size: 0.9rem;
+      outline: none;
+      transition: border-color .18s, box-shadow .18s, background .18s;
+    }
+
+    #customCode:focus {
       border-color: var(--accent);
       box-shadow: 0 0 0 1px var(--accent-soft);
       background: rgba(3,5,12,0.98);
@@ -160,6 +187,15 @@
       margin: 12px 4px 0;
       font-size: 0.82rem;
       color: var(--text-muted);
+    }
+
+    .hint.small {
+      font-size: 0.78rem;
+      margin-top: 6px;
+    }
+
+    .hint.error {
+      color: var(--error);
     }
 
     /* Result panel */
@@ -215,7 +251,6 @@
 
     .footer a { color: var(--accent); text-decoration: none; }
     .footer a:hover { text-decoration: underline; }
-
   </style>
 
 </head>
@@ -236,7 +271,7 @@
           id="mainInput"
           type="text"
           inputmode="latin"
-          placeholder="Enter a 4-char code or paste a long URL"
+          placeholder="Enter a code (e.g. h24m or securesme) or paste a long URL"
         />
 
         <div class="button-row">
@@ -245,7 +280,7 @@
       </form>
 
       <p class="hint">
-        Zilchy codes are 4 characters · numbers + letters · not case sensitive
+        Default codes are 4 characters · you can also choose a custom code (letters + numbers, any length).
       </p>
     </section>
 
@@ -263,7 +298,13 @@
         Short URL: <code id="shortOut"></code>
       </p>
 
-      <p class="hint">
+      <label for="customCode" class="field-label">Custom code (optional)</label>
+      <input id="customCode" type="text" spellcheck="false" placeholder="e.g. securesme" />
+      <p class="hint small" id="customCodeHint">
+        Letters and numbers only · case insensitive · must not already be in use.
+      </p>
+
+      <p class="hint" style="margin-top:14px;">
         To make this live, add it to <code>urls.json</code> in the GitHub repository.
       </p>
 
@@ -280,19 +321,19 @@
       <h3 class="result-subheading">How to submit a pull request</h3>
       <ol class="steps">
         <li>Fork the repository on GitHub.</li>
-        <li>Open <code>urls.json</code> and click **Edit**.</li>
+        <li>Open <code>urls.json</code> and click <strong>Edit</strong>.</li>
         <li>Paste the JSON line above into the object.</li>
         <li>Commit with a message like <code>Add Zilchy code</code>.</li>
         <li>Open a Pull Request.</li>
       </ol>
 
       <p class="hint">
-        Once merged, your Zilchy link will work instantly.
+        Once merged, your Zilchy link will work after the next deploy.
       </p>
     </section>
 
     <footer class="footer">
-      <small>© <span id="year"></span> Zilchy.link · Hand-curated short links</small>
+      <small>© <span id="year"></span> Zilchy.link · Hand-curated short links · Open Sorce Software · Part of the <A href="https://www.cyberalex.uk">Cyberalex.uk</A> umbrella</small>
     </footer>
   </main>
 
@@ -303,81 +344,165 @@
     const input = document.getElementById('mainInput');
     const goBtn = document.getElementById('goBtn');
     const resultPanel = document.getElementById('resultPanel');
+
     const longUrlDisplay = document.getElementById('longUrlDisplay');
     const codeOut = document.getElementById('codeOut');
     const shortOut = document.getElementById('shortOut');
     const jsonSnippet = document.getElementById('jsonSnippet');
+
+    const customCodeInput = document.getElementById('customCode');
+    const customCodeHint = document.getElementById('customCodeHint');
+
     const alphabet = '0123456789abcdefghijklmnopqrstuvwxyz';
+
+    let urlMap = null;
+    let lastGeneratedCode = null;
+    let lastUrl = null;
 
     function randomCode() {
       let out = '';
-      for (let i = 0; i < 4; i++)
+      for (let i = 0; i < 4; i++) {
         out += alphabet[Math.floor(Math.random() * alphabet.length)];
+      }
       return out;
     }
 
     async function loadUrlMap() {
+      if (urlMap) return urlMap;
       const res = await fetch('/urls.json', { cache: 'no-store' });
       if (!res.ok) throw new Error('Cannot load urls.json');
-      return res.json();
+      urlMap = await res.json();
+      return urlMap;
     }
 
-    async function generateUniqueCode(map) {
-      for (let i = 0; i < 10000; i++) {
-        const code = randomCode();
-        if (!map[code]) return code;
+    function looksLikeUrl(str) {
+      const s = str.trim();
+      if (/^https?:\/\//i.test(s)) return true;
+      if (s.includes(' ')) return false;
+      return s.includes('.');
+    }
+
+    function updateOutputs(code, url) {
+      const shortUrl = window.location.origin.replace(/\/+$/, '') + '/' + code;
+      codeOut.textContent = code;
+      shortOut.textContent = shortUrl;
+      jsonSnippet.textContent = `"${code}": "${url}"`;
+    }
+
+    function normalizeCode(raw) {
+      return raw.toLowerCase().replace(/[^0-9a-z]/g, '');
+    }
+
+    function clearCustomError() {
+      customCodeHint.classList.remove('error');
+      customCodeHint.textContent = 'Letters and numbers only · case insensitive · must not already be in use.';
+      customCodeInput.removeAttribute('aria-invalid');
+    }
+
+    function setCustomError(msg) {
+      customCodeHint.classList.add('error');
+      customCodeHint.textContent = msg;
+      customCodeInput.setAttribute('aria-invalid', 'true');
+    }
+
+    async function applyCustomFromField() {
+      if (!lastUrl) return;
+
+      const map = await loadUrlMap();
+
+      let raw = customCodeInput.value.trim();
+      if (!raw) {
+        // fall back to generated code
+        clearCustomError();
+        updateOutputs(lastGeneratedCode, lastUrl);
+        return;
       }
-      throw new Error('No free codes found');
-    }
 
-    function isCode(str) {
-      return /^[0-9a-zA-Z]{4}$/.test(str);
+      const cleaned = normalizeCode(raw);
+      if (!cleaned) {
+        setCustomError('Please use only letters and numbers.');
+        return;
+      }
+
+      if (cleaned.length > 64) {
+        setCustomError('That code is a bit too long. Please keep it under 64 characters.');
+        return;
+      }
+
+      if (Object.prototype.hasOwnProperty.call(map, cleaned)) {
+        setCustomError('That code is already in use. Please choose another.');
+        return;
+      }
+
+      clearCustomError();
+      updateOutputs(cleaned, lastUrl);
     }
 
     async function handleURL(raw) {
       let url = raw.trim();
       if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
 
-      try { new URL(url); }
-      catch { return alert('Invalid URL'); }
+      try {
+        new URL(url);
+      } catch (e) {
+        alert('That does not look like a valid URL.');
+        return;
+      }
 
       goBtn.disabled = true;
       goBtn.textContent = 'Working…';
 
       try {
         const map = await loadUrlMap();
-        const code = await generateUniqueCode(map);
-        const shortUrl = window.location.origin + '/' + code;
+        const code = await (async () => {
+          for (let i = 0; i < 10000; i++) {
+            const c = randomCode();
+            if (!Object.prototype.hasOwnProperty.call(map, c)) return c;
+          }
+          throw new Error('No free codes found');
+        })();
+
+        lastGeneratedCode = code;
+        lastUrl = url;
 
         longUrlDisplay.textContent = url;
-        codeOut.textContent = code;
-        shortOut.textContent = shortUrl;
-        jsonSnippet.textContent = `"${code}": "${url}"`;
+        customCodeInput.value = code;
+        clearCustomError();
+        updateOutputs(code, url);
 
         resultPanel.hidden = false;
         resultPanel.scrollIntoView({ behavior: 'smooth' });
       } catch (e) {
         console.error(e);
-        alert('Error generating code.');
+        alert('Error generating code. Please try again later.');
       } finally {
         goBtn.disabled = false;
         goBtn.textContent = 'Go';
       }
     }
 
-    form.addEventListener('submit', async e => {
+    form.addEventListener('submit', async (e) => {
       e.preventDefault();
-      const raw = input.value.trim();
+      const raw = (input.value || '').trim();
       if (!raw) return;
 
-      if (isCode(raw)) {
-        window.location.href = '/' + raw.toLowerCase();
-        return;
+      if (looksLikeUrl(raw)) {
+        await handleURL(raw);
+      } else {
+        // treat as code
+        const code = normalizeCode(raw);
+        if (!code) {
+          alert('Please use only letters and numbers in codes.');
+          return;
+        }
+        window.location.href = '/' + code;
       }
+    });
 
-      await handleURL(raw);
+    customCodeInput.addEventListener('input', () => {
+      // fire and forget; validation handles errors
+      applyCustomFromField();
     });
   </script>
-
 </body>
 </html>
