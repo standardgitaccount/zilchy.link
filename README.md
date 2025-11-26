@@ -4,6 +4,11 @@ Zilchy.link is a fully FOSS, static URL shortener.
 
 Anyone with a GitHub account can propose a new short link.
 
+## Allowed content
+Zilchy.link only accepts URL submissions that are safe-for-work
+and lawful in the UK and US. Links to adult content, gambling,
+or malicious content will not be accepted.
+
 ## How to add your link
 1. Fork this repository.
 2. Edit `urls.json` in your fork.
