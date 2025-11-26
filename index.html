@@ -27,10 +27,13 @@
           placeholder="Enter your Zilchy code or URL (e.g. h24m or https://zilchy.link/h24m)"
           aria-label="Enter a Zilchy short code or URL"
         />
-        <div class="button-row">
-          <button type="submit" class="btn-primary">Go</button>
-          <a href="create.html" class="btn-secondary">Create a new link</a>
-        </div>
+      <div class="button-row">
+        <button type="submit" class="btn-primary">Go</button>
+      
+        <button type="button" class="btn-secondary" id="createBtn">
+          Create a new link
+        </button>
+      </div>
       </form>
       <p class="hint">
         Zilchy codes are 4 characters long &nbsp;·&nbsp; numbers and letters &nbsp;·&nbsp; not case sensitive
@@ -82,6 +85,11 @@
       // Navigate to the short URL; 404.html will do the redirect.
       window.location.href = '/' + code;
     });
+
+      document.getElementById('createBtn').addEventListener('click', () => {
+    window.location.href = 'create.html';
+  });
+
   </script>
 </body>
 </html>
