@@ -5,12 +5,6 @@
 
   <!-- SVG favicon (modern browsers) -->
   <link rel="icon" type="image/svg+xml" href="/zilchy-icon.svg">
-  
-  <!-- PNG fallbacks (optional but nice to have if you export the PNG)
-  <link rel="icon" type="image/png" sizes="192x192" href="/zilchy-icon-192.png">
-  <link rel="apple-touch-icon" href="/zilchy-icon-192.png"> -->
-
-
   <!-- Manifest stays if you want PWA support later -->
   <link rel="manifest" href="/manifest.json">
 
@@ -56,6 +50,11 @@
       overflow-x: hidden;
     }
 
+    /* DO NOT FLEX THE BODY ANYMORE – avoids scroll clipping on tall content */
+    .page-center {
+      /* left intentionally empty */
+    }
+
     /* Neon pipes background */
     body.page::before {
       content: "";
@@ -84,17 +83,19 @@
       filter: blur(0.4px);
     }
 
-    .page-center {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
     .shell {
       width: 100%;
       max-width: 680px;
       margin: 0 auto;
       padding: 32px 20px;
+    }
+
+    /* Desktop-ish: push shell down so card sits visually in the middle */
+    @media (min-width: 1024px) and (min-height: 700px) {
+      .shell {
+        padding-top: 18vh;   /* ~centre on big screens */
+        padding-bottom: 10vh;
+      }
     }
 
     /* Branding header */
@@ -452,29 +453,10 @@
       }
     }
 
-  html {
-    overscroll-behavior-y: auto;
-  }
-
-  /* Desktop-only vertical centering */
-@media (min-width: 768px) and (min-height: 700px) {
-  body.page-center {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding-top: 0;
-    padding-bottom: 0;
-  }
-
-  .shell {
-    margin-top: 0;
-    margin-bottom: 0;
-  }
-}
-
-
+    html {
+      overscroll-behavior-y: auto;
+    }
   </style>
-
 </head>
 <body class="page page-center">
   <div id="distort-overlay"></div>
@@ -806,15 +788,12 @@
       }, 150);
     });
 
-      /* Back to input button (mobile-only via CSS) */
+    /* Back to input button (mobile-only via CSS) */
     if (backToInputBtn) {
       backToInputBtn.addEventListener("click", () => {
-        // Full page refresh – returns to clean home state
         window.location.reload();
       });
     }
-
-
   </script>
 </body>
 </html>
