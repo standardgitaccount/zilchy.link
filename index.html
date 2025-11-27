@@ -74,12 +74,6 @@
       filter: blur(0.4px);
     }
 
-     .button-row {
-      display: flex;
-      gap: 10px;
-      margin-top: 18px;     /* <-- ADDED / INCREASED */
-    }
-
     .page-center {
       display: flex;
       align-items: center;
@@ -160,13 +154,14 @@
       margin-bottom: 18px;
     }
 
-    /* INPUT + BUTTON ROW */
-    .input-row {
+    /* MAIN BUTTON ROW */
+    .button-row {
       display: flex;
-      align-items: center;
       gap: 10px;
+      margin-top: 18px;
     }
 
+    /* Inputs */
     #mainForm input {
       width: 100%;
       padding: 12px 14px;
@@ -177,7 +172,6 @@
       font-size: 0.95rem;
       outline: none;
       transition: border-color 0.18s, box-shadow 0.18s, background 0.18s, transform 0.12s;
-      flex: 1 1 auto;
     }
 
     #mainForm input::placeholder {
@@ -222,7 +216,7 @@
       transform: translateY(-1px);
     }
 
-    /* Buttons */
+    /* Primary button */
     .btn-primary {
       flex: 0 0 auto;
       padding: 10px 20px;
@@ -254,6 +248,54 @@
         0 0 0 1px rgba(148, 163, 184, 0.7),
         0 8px 18px rgba(34, 211, 238, 0.8);
       filter: brightness(0.97);
+    }
+
+    /* Copy buttons */
+    .btn-copy {
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.6);
+      background: rgba(15, 23, 42, 0.95);
+      color: var(--text-main);
+      font-size: 0.75rem;
+      padding: 4px 10px;
+      margin-left: 8px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.9);
+      transition: background 0.12s, transform 0.12s, box-shadow 0.12s;
+    }
+
+    .btn-copy:hover {
+      background: rgba(30, 64, 175, 0.9);
+      box-shadow: 0 0 12px rgba(59, 130, 246, 0.6);
+      transform: translateY(-0.5px);
+    }
+
+    .btn-copy:active {
+      transform: translateY(1px);
+      box-shadow: 0 0 6px rgba(59, 130, 246, 0.5);
+    }
+
+    .copy-row {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      margin-top: 4px;
+    }
+
+    .snippet-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      margin-top: 4px;
+    }
+
+    .snippet-row .btn-copy {
+      align-self: stretch;
+      padding-inline: 12px;
+      white-space: nowrap;
     }
 
     .hint {
@@ -307,6 +349,7 @@
       font-size: 0.83rem;
       overflow-x: auto;
       box-shadow: 0 0 22px rgba(15, 23, 42, 0.9);
+      flex: 1 1 auto;
     }
 
     .steps {
@@ -374,12 +417,25 @@
       <h2 class="result-heading">Create a new Zilchy link</h2>
 
       <p class="hint">
+        Modifying the urls.json file requires file write permissions obtainable upon invitation.
+      </p>
+
+      <p class="hint">
         Long URL: <code id="longUrlDisplay"></code>
       </p>
 
       <p>
-        Code: <code id="codeOut"></code><br>
-        Short URL: <code id="shortOut"></code>
+        Code:
+        <span class="copy-row">
+          <code id="codeOut"></code>
+          <button type="button" class="btn-copy" data-copy-target="codeOut">Copy</button>
+        </span>
+        <br>
+        Short URL:
+        <span class="copy-row">
+          <code id="shortOut"></code>
+          <button type="button" class="btn-copy" data-copy-target="shortOut">Copy</button>
+        </span>
       </p>
 
       <label for="customCode" class="field-label">Custom code (optional)</label>
@@ -393,7 +449,10 @@
       </p>
 
       <h3 class="result-subheading">JSON entry to paste</h3>
-      <pre id="jsonSnippet" class="snippet"></pre>
+      <div class="snippet-row">
+        <pre id="jsonSnippet" class="snippet"></pre>
+        <button type="button" class="btn-copy" data-copy-target="jsonSnippet">Copy JSON</button>
+      </div>
 
       <h3 class="result-subheading">Edit this file on GitHub</h3>
       <p>
@@ -402,17 +461,17 @@
         </a>
       </p>
 
-      <h3 class="result-subheading">How to submit a pull request</h3>
+      <h3 class="result-subheading">How to edit the urls.json file</h3>
       <ol class="steps">
-        <li>Fork the repository on GitHub.</li>
+        <li>Fork the repository or edit directly.</li>
         <li>Open <code>urls.json</code> and click <strong>Edit</strong>.</li>
-        <li>Paste the JSON line above into the object.</li>
-        <li>Commit with a message like <code>Add Zilchy code</code>.</li>
-        <li>Open a Pull Request.</li>
+        <li>Paste the JSON line above into the object while maintaining the syntax.</li>
+        <li>Commit with a message like <code>updated urls.json</code>.</li>
+        <li>Open a Pull Request or commit changes directly to main.</li>
       </ol>
 
       <p class="hint">
-        Once merged, your Zilchy link will work after the next deploy.
+        The new Zilchy link will work after the pages deploy, typically less than 60 seconds.
       </p>
     </section>
 
@@ -468,9 +527,12 @@
     }
 
     function updateOutputs(code, url) {
-      const shortUrl = window.location.origin.replace(/\/+$/, '') + '/' + code;
+      const origin = window.location.origin.replace(/\/+$/, '');
+      const displayOrigin = origin.replace(/^https?:\/\//i, '');
+      const shortUrlDisplay = displayOrigin + '/' + code;
+
       codeOut.textContent = code;
-      shortOut.textContent = shortUrl;
+      shortOut.textContent = shortUrlDisplay;
       jsonSnippet.textContent = `"${code}": "${url}"`;
     }
 
@@ -586,8 +648,50 @@
     });
 
     customCodeInput.addEventListener('input', () => {
-      // fire and forget; validation handles errors
       applyCustomFromField();
+    });
+
+    /* Copy button wiring */
+    document.querySelectorAll('.btn-copy').forEach((btn) => {
+      btn.dataset.originalText = btn.textContent;
+
+      btn.addEventListener('click', () => {
+        const targetId = btn.getAttribute('data-copy-target');
+        const el = document.getElementById(targetId);
+        if (!el) return;
+
+        const text = el.textContent.trim();
+        if (!text) return;
+
+        const onSuccess = () => {
+          btn.textContent = 'Copied!';
+          btn.disabled = true;
+          setTimeout(() => {
+            btn.textContent = btn.dataset.originalText;
+            btn.disabled = false;
+          }, 1200);
+        };
+
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).then(onSuccess).catch(() => {
+            alert('Could not copy to clipboard.');
+          });
+        } else {
+          const ta = document.createElement('textarea');
+          ta.value = text;
+          ta.style.position = 'fixed';
+          ta.style.opacity = '0';
+          document.body.appendChild(ta);
+          ta.select();
+          try {
+            document.execCommand('copy');
+            onSuccess();
+          } catch {
+            alert('Could not copy to clipboard.');
+          }
+          document.body.removeChild(ta);
+        }
+      });
     });
   </script>
 </body>
