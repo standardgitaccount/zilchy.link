@@ -379,10 +379,30 @@
       text-decoration: underline;
       text-shadow: 0 0 6px rgba(255, 76, 227, 0.7);
     }
+    #distort-overlay {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: -1;
+    background-position: center;
+    mix-blend-mode: screen;
+    transition: background 0.18s ease-out;
+  }
+  
+  body.mousemove #distort-overlay {
+    background-image:
+      radial-gradient(
+        circle 180px at var(--mx) var(--my), 
+        rgba(91,255,234,0.12) 0%, 
+        rgba(255,255,255,0) 70%
+      );
+  }
+
   </style>
 
 </head>
 <body class="page page-center">
+  <div id="distort-overlay"></div>
   <main class="shell">
     <header class="brand">
       <div class="logo-circle">Z</div>
@@ -693,6 +713,13 @@
         }
       });
     });
+
+    document.addEventListener("mousemove", (e) => {
+  document.body.classList.add("mousemove");
+  document.documentElement.style.setProperty("--mx", e.clientX + "px");
+  document.documentElement.style.setProperty("--my", e.clientY + "px");
+});
+
   </script>
 </body>
 </html>
