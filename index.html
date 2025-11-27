@@ -796,6 +796,15 @@
         }, 400);
       });
     }
+
+    // Back button simply reloads the page
+const backToSearchBtn = document.getElementById('backToSearchBtn');
+if (backToSearchBtn) {
+  backToSearchBtn.addEventListener('click', () => {
+    window.location.reload();
+  });
+}
+
   </script>
 </body>
 </html>
