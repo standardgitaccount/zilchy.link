@@ -456,6 +456,23 @@
     overscroll-behavior-y: auto;
   }
 
+  /* Desktop-only vertical centering */
+@media (min-width: 768px) and (min-height: 700px) {
+  body.page-center {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+
+  .shell {
+    margin-top: 0;
+    margin-bottom: 0;
+  }
+}
+
+
   </style>
 
 </head>
