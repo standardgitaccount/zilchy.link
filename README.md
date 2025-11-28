@@ -1,23 +1,33 @@
-# Zilchy.link – Community Short Links
+# Zilchy.link – Private, Invite-Only Short Links
 
-Zilchy.link is a fully FOSS, static URL shortener.
+Zilchy.link is a fully FOSS, static, hand-curated short-link service.  
+Unlike public URL shorteners, **Zilchy.link is private and invite-only** — only approved contributors may create or publish short links.  
+This keeps the system clean, safe, spam-free, and highly reliable.
 
-Anyone with a GitHub account can propose a new short link.
+## Allowed Content
 
-## Allowed content
-Zilchy.link only accepts URL submissions that are safe-for-work
-and lawful in the UK and US. Links to adult content, gambling,
-or malicious content will not be accepted.
+Zilchy.link only accepts links that are:
 
-## How to add your link
-1. Fork this repository.
-2. Edit `urls.json` in your fork.
-3. Add a new entry in the format:
+- Safe-for-work  
+- Non-malicious  
+- Lawful in both the UK and US  
+- Free from tracking, scams, or harmful behaviour  
 
-   "abcd": "https://your-long-url-here",
+Content involving adult material, gambling, illegal services, malware, harassment, or anything unsafe will **not** be accepted.
 
-4. Commit your change.
-5. Open a Pull Request.
-6. Once approved and merged, the link becomes active immediately.
+## How to Add a New Short Link (Invite-Only)
 
-Thanks for contributing!
+If you have been granted contributor access, you may add or propose a new short link.  
+The workflow matches the instructions displayed on the Zilchy.link generator interface.
+
+1. Open the `urls.json` file in the repository.
+2. Add a new entry in this format:
+   `"abcd": "https://your-long-url-here",`
+3. Commit your change with a message such as "updated urls.json"
+4. Open a Pull Request or commit directly to main (depending on your permission level).
+5. Once merged, your new short link becomes active automatically after deployment (usually under 60 seconds).
+
+**Important Notes:**
+- Zilchy.link is intentionally exclusive — an invite is required to publish links.
+- All links are reviewed to ensure safety and reliability.
+- The system is completely static and transparent: every short link is stored plainly inside urls.json.
