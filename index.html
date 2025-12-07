@@ -516,6 +516,42 @@
       margin-left: 0;
       flex: 0 0 auto;
     }
+
+    /* Instructions details */
+    .instructions-block {
+      margin-top: 20px;
+      font-size: 0.9rem;
+    }
+
+    .instructions-block summary {
+      cursor: pointer;
+      list-style: none;
+      padding: 8px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.6);
+      background: rgba(15, 23, 42, 0.95);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .instructions-block summary::marker {
+      display: none;
+    }
+
+    .instructions-block summary span {
+      font-size: 0.85rem;
+      color: var(--text-main);
+    }
+
+    .instructions-block[open] summary {
+      background: rgba(30, 64, 175, 0.9);
+      box-shadow: 0 0 12px rgba(59, 130, 246, 0.6);
+    }
+
+    .instructions-inner {
+      margin-top: 10px;
+    }
   </style>
 
 </head>
@@ -620,25 +656,31 @@
         </div>
       </div>
 
-      <h3 class="result-subheading">Edit this file on GitHub</h3>
-      <p>
-        <a href="https://github.com/standardgitaccount/dev.cyberalex.uk/blob/main/urls.json" target="_blank">
-          //urls.json
-        </a>
-      </p>
+      <!-- Instructions collapsible -->
+      <details class="instructions-block">
+        <summary><span>Instructions</span></summary>
+        <div class="instructions-inner">
+          <h3 class="result-subheading" style="margin-top:10px;">Edit this file on GitHub</h3>
+          <p>
+            <a href="https://github.com/standardgitaccount/dev.cyberalex.uk/blob/main/urls.json" target="_blank">
+              //urls.json
+            </a>
+          </p>
 
-      <h3 class="result-subheading">How to edit the urls.json file</h3>
-      <ol class="steps">
-        <li>Fork the repository or edit directly.</li>
-        <li>Open <code>urls.json</code> and click <strong>Edit</strong>.</li>
-        <li>Paste the JSON line above into the object while maintaining the syntax.</li>
-        <li>Commit with a message like <code>updated urls.json</code>.</li>
-        <li>Open a Pull Request or commit changes directly to main.</li>
-      </ol>
+          <h3 class="result-subheading">How to edit the urls.json file</h3>
+          <ol class="steps">
+            <li>Fork the repository or edit directly.</li>
+            <li>Open <code>urls.json</code> and click <strong>Edit</strong>.</li>
+            <li>Paste the JSON line above into the object while maintaining the syntax.</li>
+            <li>Commit with a message like <code>updated urls.json</code>.</li>
+            <li>Open a Pull Request or commit changes directly to main.</li>
+          </ol>
 
-      <p class="hint">
-        The new Zilchy link will work after the pages deploy, typically less than 60 seconds.
-      </p>
+          <p class="hint">
+            The new Zilchy link will work after the pages deploy, typically less than 60 seconds.
+          </p>
+        </div>
+      </details>
 
       <!-- MOBILE-ONLY BACK BUTTON -->
       <button type="button" class="btn-back" id="backToInput">
@@ -712,43 +754,65 @@
       return s.includes('.');
     }
 
-    async function updateQrCode(fullShortUrl) {
+    function updateQrCode(fullShortUrl) {
       currentShortUrlFull = fullShortUrl;
       if (!window.QRCode) return;
 
-      try {
-        const svgString = await QRCode.toString(fullShortUrl, {
+      currentSvgString = null;
+      currentPngDataUrl = null;
+
+      if (qrSvgDisplay) {
+        qrSvgDisplay.innerHTML = '';
+      }
+      if (qrPngImg) {
+        qrPngImg.removeAttribute('src');
+      }
+
+      // SVG
+      QRCode.toString(
+        fullShortUrl,
+        {
           type: 'svg',
           margin: 1,
           color: {
             dark: '#5bffea',
             light: '#020313'
           }
-        });
-        currentSvgString = svgString;
-        if (qrSvgDisplay) {
-          qrSvgDisplay.innerHTML = svgString;
+        },
+        function (err, svgString) {
+          if (err) {
+            console.error('Error creating SVG QR', err);
+            return;
+          }
+          currentSvgString = svgString;
+          if (qrSvgDisplay) {
+            qrSvgDisplay.innerHTML = svgString;
+          }
         }
-      } catch (e) {
-        console.error('Error creating SVG QR', e);
-      }
+      );
 
-      try {
-        const pngDataUrl = await QRCode.toDataURL(fullShortUrl, {
+      // PNG
+      QRCode.toDataURL(
+        fullShortUrl,
+        {
           width: 500,
           margin: 1,
           color: {
             dark: '#5bffea',
             light: '#020313'
           }
-        });
-        currentPngDataUrl = pngDataUrl;
-        if (qrPngImg) {
-          qrPngImg.src = pngDataUrl;
+        },
+        function (err, dataUrl) {
+          if (err) {
+            console.error('Error creating PNG QR', err);
+            return;
+          }
+          currentPngDataUrl = dataUrl;
+          if (qrPngImg) {
+            qrPngImg.src = dataUrl;
+          }
         }
-      } catch (e) {
-        console.error('Error creating PNG QR', e);
-      }
+      );
     }
 
     function updateOutputs(code, url) {
