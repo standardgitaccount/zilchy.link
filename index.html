@@ -462,6 +462,60 @@
         display: none;
       }
     }
+
+    /* QR code section */
+    .qr-wrapper {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      margin-top: 8px;
+    }
+
+    .qr-block {
+      flex: 1 1 240px;
+      background: rgba(6, 12, 38, 0.96);
+      border-radius: 12px;
+      border: 1px solid rgba(148, 163, 184, 0.6);
+      padding: 10px 12px;
+      box-shadow: 0 0 22px rgba(15, 23, 42, 0.9);
+    }
+
+    .qr-label {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+
+    .qr-display {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 8px;
+      border-radius: 10px;
+      background:
+        radial-gradient(circle at 0% 0%, rgba(91, 255, 234, 0.12), transparent 60%),
+        radial-gradient(circle at 100% 100%, rgba(255, 76, 227, 0.1), transparent 60%),
+        #020313;
+    }
+
+    .qr-display svg,
+    .qr-display img {
+      max-width: 100%;
+      height: auto;
+      display: block;
+    }
+
+    .qr-actions {
+      margin-top: 8px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .qr-actions .btn-copy {
+      margin-left: 0;
+      flex: 0 0 auto;
+    }
   </style>
 
 </head>
@@ -539,6 +593,33 @@
         <button type="button" class="btn-copy" data-copy-target="jsonSnippet">Copy JSON</button>
       </div>
 
+      <h3 class="result-subheading">QR code</h3>
+      <p class="hint small">
+        Generated from the current short URL. Updating the custom code will refresh both QR versions.
+      </p>
+      <div class="qr-wrapper">
+        <div class="qr-block">
+          <div class="qr-label">SVG</div>
+          <div class="qr-display" id="qrSvgDisplay">
+            <span class="hint small">Generate a link to see the QR code.</span>
+          </div>
+          <div class="qr-actions">
+            <button type="button" class="btn-copy" id="qrSvgCopyBtn">Copy SVG</button>
+            <button type="button" class="btn-copy" id="qrSvgDownloadBtn">Download SVG</button>
+          </div>
+        </div>
+        <div class="qr-block">
+          <div class="qr-label">PNG (500×500)</div>
+          <div class="qr-display">
+            <img id="qrPngImg" alt="QR code for this Zilchy link">
+          </div>
+          <div class="qr-actions">
+            <button type="button" class="btn-copy" id="qrPngCopyBtn">Copy PNG</button>
+            <button type="button" class="btn-copy" id="qrPngDownloadBtn">Download PNG</button>
+          </div>
+        </div>
+      </div>
+
       <h3 class="result-subheading">Edit this file on GitHub</h3>
       <p>
         <a href="https://github.com/standardgitaccount/dev.cyberalex.uk/blob/main/urls.json" target="_blank">
@@ -571,6 +652,9 @@
     </footer>
   </main>
 
+  <!-- QR generator library -->
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js" integrity="sha384-5gW61qC4r5UuAh8i1w1xj2BLlNwm8jDjZz7lAq9D59/1d1WuoFMxUV/XvTH6OhY" crossorigin="anonymous"></script>
+
   <script>
     document.getElementById('year').textContent = new Date().getFullYear();
 
@@ -588,11 +672,22 @@
     const customCodeInput = document.getElementById('customCode');
     const customCodeHint = document.getElementById('customCodeHint');
 
+    const qrSvgDisplay = document.getElementById('qrSvgDisplay');
+    const qrPngImg = document.getElementById('qrPngImg');
+    const qrSvgCopyBtn = document.getElementById('qrSvgCopyBtn');
+    const qrSvgDownloadBtn = document.getElementById('qrSvgDownloadBtn');
+    const qrPngCopyBtn = document.getElementById('qrPngCopyBtn');
+    const qrPngDownloadBtn = document.getElementById('qrPngDownloadBtn');
+
     const alphabet = '0123456789abcdefghijklmnopqrstuvwxyz';
 
     let urlMap = null;
     let lastGeneratedCode = null;
     let lastUrl = null;
+
+    let currentShortUrlFull = null;
+    let currentSvgString = null;
+    let currentPngDataUrl = null;
 
     function randomCode() {
       let out = '';
@@ -617,14 +712,56 @@
       return s.includes('.');
     }
 
+    async function updateQrCode(fullShortUrl) {
+      currentShortUrlFull = fullShortUrl;
+      if (!window.QRCode) return;
+
+      try {
+        const svgString = await QRCode.toString(fullShortUrl, {
+          type: 'svg',
+          margin: 1,
+          color: {
+            dark: '#5bffea',
+            light: '#020313'
+          }
+        });
+        currentSvgString = svgString;
+        if (qrSvgDisplay) {
+          qrSvgDisplay.innerHTML = svgString;
+        }
+      } catch (e) {
+        console.error('Error creating SVG QR', e);
+      }
+
+      try {
+        const pngDataUrl = await QRCode.toDataURL(fullShortUrl, {
+          width: 500,
+          margin: 1,
+          color: {
+            dark: '#5bffea',
+            light: '#020313'
+          }
+        });
+        currentPngDataUrl = pngDataUrl;
+        if (qrPngImg) {
+          qrPngImg.src = pngDataUrl;
+        }
+      } catch (e) {
+        console.error('Error creating PNG QR', e);
+      }
+    }
+
     function updateOutputs(code, url) {
       const origin = window.location.origin.replace(/\/+$/, '');
       const displayOrigin = origin.replace(/^https?:\/\//i, '');
       const shortUrlDisplay = displayOrigin + '/' + code;
+      const fullShortUrl = origin + '/' + code;
 
       codeOut.textContent = code;
       shortOut.textContent = shortUrlDisplay;
       jsonSnippet.textContent = `"${code}": "${url}"`;
+
+      updateQrCode(fullShortUrl);
     }
 
     function normalizeCode(raw) {
@@ -740,13 +877,13 @@
       applyCustomFromField();
     });
 
-    /* Copy button wiring */
+    /* Copy button wiring for text-based targets */
     document.querySelectorAll('.btn-copy').forEach((btn) => {
       btn.dataset.originalText = btn.textContent;
 
       btn.addEventListener('click', () => {
         const targetId = btn.getAttribute('data-copy-target');
-        const el = document.getElementById(targetId);
+        const el = targetId ? document.getElementById(targetId) : null;
         if (!el) return;
 
         const text = el.textContent.trim();
@@ -782,6 +919,93 @@
         }
       });
     });
+
+    /* Helper for QR copy buttons */
+    function showCopiedState(btn) {
+      const original = btn.dataset.originalText || btn.textContent;
+      btn.textContent = 'Copied!';
+      btn.disabled = true;
+      setTimeout(() => {
+        btn.textContent = original;
+        btn.disabled = false;
+      }, 1200);
+    }
+
+    /* QR SVG copy & download */
+    if (qrSvgCopyBtn) {
+      qrSvgCopyBtn.dataset.originalText = qrSvgCopyBtn.textContent;
+      qrSvgCopyBtn.addEventListener('click', async () => {
+        if (!currentSvgString) return;
+
+        try {
+          if (navigator.clipboard && navigator.clipboard.write) {
+            const blob = new Blob([currentSvgString], { type: 'image/svg+xml' });
+            const item = new ClipboardItem({ 'image/svg+xml': blob });
+            await navigator.clipboard.write([item]);
+          } else if (navigator.clipboard && navigator.clipboard.writeText) {
+            await navigator.clipboard.writeText(currentSvgString);
+          } else {
+            throw new Error('Clipboard unsupported');
+          }
+          showCopiedState(qrSvgCopyBtn);
+        } catch (e) {
+          console.error('Could not copy SVG QR', e);
+          alert('Could not copy the SVG QR code. Your browser may not support image copying.');
+        }
+      });
+    }
+
+    if (qrSvgDownloadBtn) {
+      qrSvgDownloadBtn.addEventListener('click', () => {
+        if (!currentSvgString) return;
+        const blob = new Blob([currentSvgString], { type: 'image/svg+xml' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'zilchy-link-qr.svg';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      });
+    }
+
+    /* QR PNG copy & download */
+    if (qrPngCopyBtn) {
+      qrPngCopyBtn.dataset.originalText = qrPngCopyBtn.textContent;
+      qrPngCopyBtn.addEventListener('click', async () => {
+        if (!currentPngDataUrl) return;
+
+        try {
+          if (navigator.clipboard && navigator.clipboard.write) {
+            const res = await fetch(currentPngDataUrl);
+            const blob = await res.blob();
+            const item = new ClipboardItem({ 'image/png': blob });
+            await navigator.clipboard.write([item]);
+          } else if (navigator.clipboard && navigator.clipboard.writeText) {
+            await navigator.clipboard.writeText(currentPngDataUrl);
+          } else {
+            throw new Error('Clipboard unsupported');
+          }
+          showCopiedState(qrPngCopyBtn);
+        } catch (e) {
+          console.error('Could not copy PNG QR', e);
+          alert('Could not copy the PNG QR code. Your browser may not support image copying.');
+        }
+      });
+    }
+
+    if (qrPngDownloadBtn) {
+      qrPngDownloadBtn.addEventListener('click', () => {
+        if (!currentPngDataUrl) return;
+        const a = document.createElement('a');
+        a.href = currentPngDataUrl;
+        a.download = 'zilchy-link-qr.png';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      });
+    }
 
     /* Distortion highlight */
     document.addEventListener("mousemove", (e) => {
